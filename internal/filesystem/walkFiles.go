@@ -5,17 +5,20 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem/parser"
 )
 
-type FileData struct {
+type File struct {
 	Size     int64
 	ModTime  time.Time
 	IsDir    bool
-	Children *map[string]FileData
+	Children *map[string]File
 }
 
-func WalkFiles(ctx context.Context, root, dir string, prev *map[string]FileData) *map[string]FileData {
+func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File) *map[string]File {
 	if err := ctx.Err(); err != nil {
 		return nil
 	}
@@ -27,7 +30,7 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]FileData)
 		return nil
 	}
 
-	result := make(map[string]FileData, len(entries))
+	result := make(map[string]File, len(entries))
 
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
@@ -43,14 +46,14 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]FileData)
 			continue
 		}
 
-		data := FileData{
+		data := File{
 			Size:    info.Size(),
 			ModTime: info.ModTime(),
 			IsDir:   entry.IsDir(),
 		}
 
 		unchanged := false
-		var prevChildren *map[string]FileData
+		var prevChildren *map[string]File
 		if prev != nil {
 			if p, ok := (*prev)[entry.Name()]; ok && p.IsDir == data.IsDir {
 				prevChildren = p.Children
@@ -63,6 +66,26 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]FileData)
 		if !unchanged {
 			slog.Info("changed",
 				slog.String("path", path))
+
+			if !data.IsDir {
+				switch strings.ToLower(filepath.Ext(entry.Name())) {
+				case ".pdf":
+					docs, perr := parser.PDF(ctx, path)
+					if perr != nil {
+						slog.Warn("parsePDF",
+							slog.String("error", perr.Error()))
+						break
+					}
+					slog.Info("parsed pdf",
+						slog.String("path", path),
+						slog.Int("pages", len(docs)))
+					for e := range docs {
+						slog.Info("pdf page",
+							slog.String("path", path),
+							slog.String("content", docs[e].Content))
+					}
+				}
+			}
 		}
 
 		if entry.IsDir() {

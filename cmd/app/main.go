@@ -62,7 +62,7 @@ func main() {
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
-	var prev *map[string]filesystem.FileData
+	var prev *map[string]filesystem.File
 
 	for {
 		select {

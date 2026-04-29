@@ -18,9 +18,14 @@ import (
 
 	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem"
+	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
 )
 
-const pollInterval = 10 * time.Second
+const (
+	pollInterval  = 10 * time.Second
+	embedInterval = 5 * time.Second
+	embedBatch    = 64
+)
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -83,6 +88,15 @@ func main() {
 		os.Exit(1)
 	}
 	defer st.Close()
+
+	embedder, err := openai.New()
+	if err != nil {
+		slog.Error("openai.New",
+			slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	go runEmbedder(ctx, st, embedder, embedInterval, embedBatch)
 
 	recordPath := filepath.Join(baseDir, "record.json")
 

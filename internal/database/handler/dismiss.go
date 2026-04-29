@@ -9,10 +9,10 @@ import (
 
 func Dismiss(db *database.DB, ctx context.Context, source string) error {
 	if db == nil || db.DB == nil {
-		return fmt.Errorf("database: not initialized")
+		return fmt.Errorf("db is required")
 	}
 	if source == "" {
-		return fmt.Errorf("database: source is required")
+		return fmt.Errorf("source is required")
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -24,7 +24,7 @@ SET dismiss = TRUE,
     updated_at = CURRENT_TIMESTAMP
 WHERE source = ?
 AND dismiss = FALSE;`, source); err != nil {
-		return fmt.Errorf("database: db.db.ExecContext: %w", err)
+		return fmt.Errorf("db.db.ExecContext: %w", err)
 	}
 	return nil
 }

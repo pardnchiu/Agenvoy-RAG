@@ -19,7 +19,7 @@ type File struct {
 	Children *map[string]File
 }
 
-func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, st *database.DB) *map[string]File {
+func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db *database.DB) *map[string]File {
 	if err := ctx.Err(); err != nil {
 		return nil
 	}
@@ -84,7 +84,7 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, st 
 					if err != nil {
 						slog.Warn("parser",
 							slog.String("error", err.Error()))
-					} else if perr := st.Save(ctx, path, files); perr != nil {
+					} else if perr := db.Save(ctx, path, files); perr != nil {
 						slog.Warn("store.Save",
 							slog.String("error", perr.Error()))
 					} else {
@@ -98,10 +98,43 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, st 
 		}
 
 		if entry.IsDir() {
-			data.Children = WalkFiles(ctx, root, path, prevChildren, st)
+			data.Children = WalkFiles(ctx, root, path, prevChildren, db)
 		}
 
 		result[entry.Name()] = data
 	}
+
+	if prev != nil && ctx.Err() == nil {
+		for name, p := range *prev {
+			if _, ok := present[name]; ok {
+				continue
+			}
+			dismissRemoved(ctx, filepath.Join(dir, name), p, db)
+		}
+	}
+
 	return &result
+}
+
+func dismissRemoved(ctx context.Context, path string, node File, db *database.DB) {
+	if err := ctx.Err(); err != nil {
+		return
+	}
+	if node.IsDir {
+		if node.Children == nil {
+			return
+		}
+		for childName, childNode := range *node.Children {
+			dismissRemoved(ctx, filepath.Join(path, childName), childNode, db)
+		}
+		return
+	}
+	if err := db.Dismiss(ctx, path); err != nil {
+		slog.Warn("db.Dismiss",
+			slog.String("path", path),
+			slog.String("error", err.Error()))
+		return
+	}
+	slog.Info("dismissed",
+		slog.String("path", path))
 }

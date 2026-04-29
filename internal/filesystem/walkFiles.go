@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pardnchiu/AgenvoyRAG/internal/database"
+	databaseHandler "github.com/pardnchiu/AgenvoyRAG/internal/database/handler"
 	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem/parser"
 )
 
@@ -92,7 +93,7 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 					if err != nil {
 						slog.Warn("parser",
 							slog.String("error", err.Error()))
-					} else if perr := db.Upsert(ctx, path, files); perr != nil {
+					} else if perr := databaseHandler.Upsert(db, ctx, path, files); perr != nil {
 						slog.Warn("store.Save",
 							slog.String("error", perr.Error()))
 					} else {
@@ -137,7 +138,7 @@ func dismissRemoved(ctx context.Context, path string, node File, db *database.DB
 		}
 		return
 	}
-	if err := db.Dismiss(ctx, path); err != nil {
+	if err := databaseHandler.Dismiss(db, ctx, path); err != nil {
 		slog.Warn("db.Dismiss",
 			slog.String("path", path),
 			slog.String("error", err.Error()))

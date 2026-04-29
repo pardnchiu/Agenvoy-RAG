@@ -1,12 +1,14 @@
-package database
+package databaseHandler
 
 import (
 	"context"
 	"fmt"
+
+	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 )
 
-func (db *DB) Dismiss(ctx context.Context, source string) error {
-	if db == nil || db.db == nil {
+func Dismiss(db *database.DB, ctx context.Context, source string) error {
+	if db == nil || db.DB == nil {
 		return fmt.Errorf("database: not initialized")
 	}
 	if source == "" {
@@ -16,7 +18,7 @@ func (db *DB) Dismiss(ctx context.Context, source string) error {
 		return err
 	}
 
-	if _, err := db.db.ExecContext(ctx, `
+	if _, err := db.DB.ExecContext(ctx, `
 UPDATE file_data
 SET dismiss = TRUE,
     updated_at = CURRENT_TIMESTAMP

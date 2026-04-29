@@ -13,7 +13,7 @@ import (
 var sqlSchemaFileData string
 
 type DB struct {
-	db *sql.DB
+	DB *sql.DB
 }
 
 func Open(ctx context.Context, path string) (*DB, error) {
@@ -38,23 +38,23 @@ func Open(ctx context.Context, path string) (*DB, error) {
 		return nil, fmt.Errorf("database: ping: %w", err)
 	}
 
-	s := &DB{db: raw}
-	if err := s.migrate(ctx); err != nil {
-		s.Close()
+	db := &DB{DB: raw}
+	if err := db.migrate(ctx); err != nil {
+		db.Close()
 		return nil, err
 	}
-	return s, nil
+	return db, nil
 }
 
 func (db *DB) Close() {
-	if db == nil || db.db == nil {
+	if db == nil || db.DB == nil {
 		return
 	}
-	db.db.Close()
+	db.DB.Close()
 }
 
 func (db *DB) migrate(ctx context.Context) error {
-	if _, err := db.db.ExecContext(ctx, sqlSchemaFileData); err != nil {
+	if _, err := db.DB.ExecContext(ctx, sqlSchemaFileData); err != nil {
 		return fmt.Errorf("database: migrate: %w", err)
 	}
 	return nil

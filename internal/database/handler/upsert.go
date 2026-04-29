@@ -1,14 +1,15 @@
-package database
+package databaseHandler
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/pardnchiu/AgenvoyRAG/internal/database"
 	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem/parser"
 )
 
-func (db *DB) Upsert(ctx context.Context, source string, files []parser.FileData) error {
-	if db == nil || db.db == nil {
+func Upsert(db *database.DB, ctx context.Context, source string, files []parser.FileData) error {
+	if db == nil || db.DB == nil {
 		return fmt.Errorf("database: not initialized")
 	}
 	if source == "" {
@@ -18,7 +19,7 @@ func (db *DB) Upsert(ctx context.Context, source string, files []parser.FileData
 		return err
 	}
 
-	tx, err := db.db.BeginTx(ctx, nil)
+	tx, err := db.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("database: db.db.BeginTx: %w", err)
 	}

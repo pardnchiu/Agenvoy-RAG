@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type FileData struct {
-	Source  string
-	Index   int
-	Total   int
-	Content string
+	Source    string
+	Index     int
+	Total     int
+	Content   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func PDF(ctx context.Context, path string) ([]FileData, error) {

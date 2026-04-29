@@ -92,7 +92,7 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 					if err != nil {
 						slog.Warn("parser",
 							slog.String("error", err.Error()))
-					} else if perr := db.Save(ctx, path, files); perr != nil {
+					} else if perr := db.Upsert(ctx, path, files); perr != nil {
 						slog.Warn("store.Save",
 							slog.String("error", perr.Error()))
 					} else {

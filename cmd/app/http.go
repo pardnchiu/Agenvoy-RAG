@@ -27,7 +27,7 @@ const (
 	httpShutdownTimeout   = 5 * time.Second
 )
 
-func runHTTP(ctx context.Context, dbName string, db *database.DB, cache *vector.Cache, embedder openai.Embedder, qcache *openai.Cache, seg *segmenter.Segmenter) {
+func runHTTP(ctx context.Context, dbName string, reg *database.Registry, db *database.DB, cache *vector.Cache, embedder openai.Embedder, qcache *openai.Cache, seg *segmenter.Segmenter) {
 	ln, port, err := pickListener()
 	if err != nil {
 		slog.Error("http: pickListener",
@@ -43,7 +43,7 @@ func runHTTP(ctx context.Context, dbName string, db *database.DB, cache *vector.
 	}
 
 	srv := &http.Server{
-		Handler:           api.Router(dbName, db, cache, embedder, qcache, seg),
+		Handler:           api.Router(dbName, reg, db, cache, embedder, qcache, seg),
 		ReadHeaderTimeout: httpReadHeaderTimeout,
 	}
 

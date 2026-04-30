@@ -137,7 +137,7 @@ func runServer() {
 	recordPath := filepath.Join(baseDir, "record.json")
 
 	go runEmbedder(ctx, db, embedder, embedInterval, embedBatch)
-	go runHTTP(ctx, dbName, db, cache, embedder, qcache, seg)
+	go runHTTP(ctx, dbName, reg, db, cache, embedder, qcache, seg)
 	go runWatcher(ctx, folderDir, recordPath, db)
 
 	<-ctx.Done()

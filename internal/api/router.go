@@ -12,7 +12,7 @@ import (
 	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
-func Router(dbName string, db *database.DB, cache *vector.Cache, embedder openai.Embedder, qCache *openai.Cache, seg *segmenter.Segmenter) *gin.Engine {
+func Router(dbName string, reg *database.Registry, db *database.DB, cache *vector.Cache, embedder openai.Embedder, qCache *openai.Cache, seg *segmenter.Segmenter) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
@@ -20,6 +20,7 @@ func Router(dbName string, db *database.DB, cache *vector.Cache, embedder openai
 
 	api := r.Group("/api")
 	api.GET("/health", Health(cache))
+	api.GET("/list", List(dbName, reg))
 	api.GET("/semantic", requireDB(dbName), Semantic(db, cache, embedder, qCache))
 	api.GET("/keyword", requireDB(dbName), Keyword(db, seg))
 

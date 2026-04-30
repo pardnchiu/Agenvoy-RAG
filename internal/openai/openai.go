@@ -12,7 +12,7 @@ import (
 const (
 	baseURL        = "https://api.openai.com/v1"
 	model          = "text-embedding-3-small"
-	dim            = 1536
+	dim            = 512
 	requestTimeout = 1 * time.Minute
 )
 

@@ -12,8 +12,9 @@ import (
 )
 
 type embedRequest struct {
-	Input []string `json:"input"`
-	Model string   `json:"model"`
+	Input      []string `json:"input"`
+	Model      string   `json:"model"`
+	Dimensions int      `json:"dimensions"`
 }
 
 type embedResponse struct {
@@ -41,7 +42,7 @@ func (o *OpenAI) EmbedBatch(ctx context.Context, texts []string) ([]Vector, erro
 		return nil, nil
 	}
 
-	body, err := json.Marshal(embedRequest{Input: texts, Model: model})
+	body, err := json.Marshal(embedRequest{Input: texts, Model: model, Dimensions: dim})
 	if err != nil {
 		return nil, fmt.Errorf("openai: marshal: %w", err)
 	}

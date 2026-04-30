@@ -34,6 +34,7 @@ func runEmbedder(
 	ctx context.Context,
 	db *database.DB,
 	embedder openai.Embedder,
+	cache *vector.Cache,
 	interval time.Duration,
 	batch int,
 ) {
@@ -45,12 +46,12 @@ func runEmbedder(
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			embedTick(ctx, db, embedder, batch)
+			embedTick(ctx, db, embedder, cache, batch)
 		}
 	}
 }
 
-func embedTick(ctx context.Context, db *database.DB, embedder openai.Embedder, batch int) {
+func embedTick(ctx context.Context, db *database.DB, embedder openai.Embedder, cache *vector.Cache, batch int) {
 	pending, err := databaseHandler.ListPending(db, ctx, batch)
 	if err != nil {
 		slog.Warn("embed: ListPending",
@@ -94,6 +95,18 @@ func embedTick(ctx context.Context, db *database.DB, embedder openai.Embedder, b
 		slog.Warn("embed: SetEmbeddings",
 			slog.String("error", err.Error()))
 		return
+	}
+
+	if cache != nil && len(applied) > 0 {
+		appliedSet := make(map[int64]struct{}, len(applied))
+		for _, id := range applied {
+			appliedSet[id] = struct{}{}
+		}
+		for i, p := range pending {
+			if _, ok := appliedSet[p.ID]; ok {
+				cache.Set(p.ID, vectors[i])
+			}
+		}
 	}
 
 	slog.Info("embedded",

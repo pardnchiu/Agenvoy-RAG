@@ -16,11 +16,11 @@ import (
 	goUtils_filesystem "github.com/pardnchiu/go-utils/filesystem"
 	goUtils_utils "github.com/pardnchiu/go-utils/utils"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem"
-	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
-	"github.com/pardnchiu/AgenvoyRAG/internal/segmenter"
-	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/pardnchiu/KuraDB/internal/filesystem"
+	"github.com/pardnchiu/KuraDB/internal/openai"
+	"github.com/pardnchiu/KuraDB/internal/segmenter"
+	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
 const (
@@ -43,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dbName := goUtils_utils.GetWithDefault("DB_NAME", "")
+	dbName := sanitizeDBName(goUtils_utils.GetWithDefault("DB_NAME", ""))
 	if dbName == "" {
 		slog.Error("DB_NAME is required (set in .env or environment)")
 		os.Exit(1)
@@ -60,7 +60,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	baseDir := filepath.Join(homeDir, ".config", "Agenvoy", "rag", dbName)
+	baseDir := filepath.Join(homeDir, ".config", "KuraDB", dbName)
 	if err := goUtils_filesystem.CheckDir(baseDir, true); err != nil {
 		slog.Error("goUtils_filesystem.CheckDir",
 			slog.String("error", err.Error()))
@@ -74,7 +74,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	linkPath := filepath.Join(homeDir, "AgenRAG_"+dbName)
+	linkPath := filepath.Join(homeDir, "Kura_"+dbName)
 	if err := ensureSymlink(folderDir, linkPath); err != nil {
 		slog.Error("ensureSymlink",
 			slog.String("link", linkPath),

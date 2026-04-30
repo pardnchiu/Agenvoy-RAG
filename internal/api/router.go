@@ -3,10 +3,10 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
-	"github.com/pardnchiu/AgenvoyRAG/internal/segmenter"
-	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/pardnchiu/KuraDB/internal/openai"
+	"github.com/pardnchiu/KuraDB/internal/segmenter"
+	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
 func Router(db *database.DB, cache *vector.Cache, embedder openai.Embedder, qCache *openai.Cache, seg *segmenter.Segmenter) *gin.Engine {

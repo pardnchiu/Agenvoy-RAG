@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
+	"github.com/pardnchiu/KuraDB/internal/database"
 )
 
 type PendingItem struct {

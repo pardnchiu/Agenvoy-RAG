@@ -8,10 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	databaseHandler "github.com/pardnchiu/AgenvoyRAG/internal/database/handler"
-	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
-	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
+	"github.com/pardnchiu/KuraDB/internal/openai"
+	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
 const (

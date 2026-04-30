@@ -1,4 +1,4 @@
-module github.com/pardnchiu/AgenvoyRAG
+module github.com/pardnchiu/KuraDB
 
 go 1.25.1
 

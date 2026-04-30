@@ -9,9 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	databaseHandler "github.com/pardnchiu/AgenvoyRAG/internal/database/handler"
-	"github.com/pardnchiu/AgenvoyRAG/internal/segmenter"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
+	"github.com/pardnchiu/KuraDB/internal/segmenter"
 )
 
 const (

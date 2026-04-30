@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
+	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
 func Health(cache *vector.Cache) gin.HandlerFunc {

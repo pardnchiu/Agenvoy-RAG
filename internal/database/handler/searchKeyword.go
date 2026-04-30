@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
+	"github.com/pardnchiu/KuraDB/internal/database"
 )
 
 func SearchKeyword(db *database.DB, ctx context.Context, keywords []string, limit int) ([]FileRow, error) {

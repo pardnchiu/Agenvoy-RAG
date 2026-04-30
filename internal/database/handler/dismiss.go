@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
+	"github.com/pardnchiu/KuraDB/internal/database"
 )
 
 func Dismiss(db *database.DB, ctx context.Context, source string) error {

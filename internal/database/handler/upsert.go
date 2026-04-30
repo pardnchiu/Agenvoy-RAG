@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem/parser"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/pardnchiu/KuraDB/internal/filesystem/parser"
 )
 
 func Upsert(db *database.DB, ctx context.Context, source string, files []parser.FileData) error {

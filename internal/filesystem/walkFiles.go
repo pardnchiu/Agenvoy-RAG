@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	databaseHandler "github.com/pardnchiu/AgenvoyRAG/internal/database/handler"
-	"github.com/pardnchiu/AgenvoyRAG/internal/filesystem/parser"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
+	"github.com/pardnchiu/KuraDB/internal/filesystem/parser"
 )
 
 type File struct {

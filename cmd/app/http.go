@@ -12,11 +12,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/api"
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
-	"github.com/pardnchiu/AgenvoyRAG/internal/segmenter"
-	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
+	"github.com/pardnchiu/KuraDB/internal/agenvoy"
+	"github.com/pardnchiu/KuraDB/internal/api"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/pardnchiu/KuraDB/internal/openai"
+	"github.com/pardnchiu/KuraDB/internal/segmenter"
+	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
 const (

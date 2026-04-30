@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/pardnchiu/AgenvoyRAG/internal/database"
-	databaseHandler "github.com/pardnchiu/AgenvoyRAG/internal/database/handler"
-	"github.com/pardnchiu/AgenvoyRAG/internal/openai"
-	"github.com/pardnchiu/AgenvoyRAG/internal/vector"
+	"github.com/pardnchiu/KuraDB/internal/database"
+	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
+	"github.com/pardnchiu/KuraDB/internal/openai"
+	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
 func loadCache(ctx context.Context, db *database.DB, cache *vector.Cache) error {

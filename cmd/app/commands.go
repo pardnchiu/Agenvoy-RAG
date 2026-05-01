@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/pardnchiu/KuraDB/internal/database"
-	go_utils_filesystem "github.com/pardnchiu/go-utils/filesystem"
+	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
 )
 
 func printUsage(w io.Writer) {
@@ -57,7 +57,7 @@ func cmdAdd(args []string) {
 	}
 
 	folderDir := filepath.Join(dbDir, "inbox")
-	if err := go_utils_filesystem.CheckDir(folderDir, true); err != nil {
+	if err := go_pkg_filesystem.CheckDir(folderDir, true); err != nil {
 		fmt.Fprintf(os.Stderr, "add: CheckDir: %v\n", err)
 		os.Exit(1)
 	}

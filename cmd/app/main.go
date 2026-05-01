@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	go_utils_filesystem "github.com/pardnchiu/go-utils/filesystem"
+	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
 
 	"github.com/pardnchiu/KuraDB/internal/database"
 	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
@@ -114,7 +114,7 @@ func runServer() {
 
 	for _, entry := range entries {
 		baseDir := filepath.Join(configDir, entry.DB)
-		if err := go_utils_filesystem.CheckDir(baseDir, true); err != nil {
+		if err := go_pkg_filesystem.CheckDir(baseDir, true); err != nil {
 			slog.Warn("db: CheckDir base",
 				slog.String("db", entry.DB),
 				slog.String("error", err.Error()))
@@ -122,7 +122,7 @@ func runServer() {
 		}
 
 		folderDir := filepath.Join(baseDir, "inbox")
-		if err := go_utils_filesystem.CheckDir(folderDir, true); err != nil {
+		if err := go_pkg_filesystem.CheckDir(folderDir, true); err != nil {
 			slog.Warn("db: CheckDir inbox",
 				slog.String("db", entry.DB),
 				slog.String("error", err.Error()))
@@ -181,10 +181,10 @@ func runServer() {
 
 func runWatcher(ctx context.Context, folderDir, recordPath string, db *database.DB) {
 	var prev *map[string]filesystem.File
-	if snap, err := go_utils_filesystem.ReadJSON[map[string]filesystem.File](recordPath); err == nil {
+	if snap, err := go_pkg_filesystem.ReadJSON[map[string]filesystem.File](recordPath); err == nil {
 		prev = &snap
 	} else if !errors.Is(err, os.ErrNotExist) {
-		slog.Warn("go_utils_filesystem.ReadJSON",
+		slog.Warn("go_pkg_filesystem.ReadJSON",
 			slog.String("error", err.Error()))
 	}
 
@@ -209,8 +209,8 @@ func runWatcher(ctx context.Context, folderDir, recordPath string, db *database.
 			go func() {
 				saveMu.Lock()
 				defer saveMu.Unlock()
-				if err := go_utils_filesystem.WriteJSON(recordPath, *snap, false); err != nil {
-					slog.Warn("go_utils_filesystem.WriteJSON",
+				if err := go_pkg_filesystem.WriteJSON(recordPath, *snap, false); err != nil {
+					slog.Warn("go_pkg_filesystem.WriteJSON",
 						slog.String("error", err.Error()))
 				}
 			}()
@@ -233,7 +233,7 @@ func mustConfigDir() (homeDir, configDir string) {
 		os.Exit(1)
 	}
 	configDir = filepath.Join(homeDir, ".config", "KuraDB")
-	if err := go_utils_filesystem.CheckDir(configDir, true); err != nil {
+	if err := go_pkg_filesystem.CheckDir(configDir, true); err != nil {
 		fmt.Fprintf(os.Stderr, "CheckDir %s: %v\n", configDir, err)
 		os.Exit(1)
 	}

@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	go_pkg_parser "github.com/pardnchiu/go-pkg/filesystem/parser"
+
 	"github.com/pardnchiu/KuraDB/internal/database"
 	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
-	"github.com/pardnchiu/KuraDB/internal/filesystem/parser"
 )
 
 type File struct {
@@ -76,18 +77,18 @@ func WalkFiles(ctx context.Context, root, dir string, prev *map[string]File, db 
 			if !data.IsDir {
 				ext := strings.ToLower(filepath.Ext(entry.Name()))
 				var (
-					files []parser.FileData
+					files []go_pkg_parser.Chunk
 					err   error
 				)
 				switch ext {
 				case ".pdf":
-					files, err = parser.PDF(ctx, path)
+					_, files, err = go_pkg_parser.PDF(ctx, path)
 				case ".docx":
-					files, err = parser.DOCX(ctx, path)
+					_, files, err = go_pkg_parser.Docx(ctx, path)
 				case ".pptx":
-					files, err = parser.PPTX(ctx, path)
+					_, files, err = go_pkg_parser.PPTX(ctx, path)
 				case ".txt", ".md":
-					files, err = parser.Markdown(ctx, path)
+					_, files, err = go_pkg_parser.Markdown(ctx, path)
 				default:
 					ext = ""
 				}

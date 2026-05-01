@@ -1,35 +1,19 @@
 package openai
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
-	"io"
 	"math"
-	"net/http"
-)
 
-type embedRequest struct {
-	Input      []string `json:"input"`
-	Model      string   `json:"model"`
-	Dimensions int      `json:"dimensions"`
-}
+	go_pkg_http "github.com/pardnchiu/go-pkg/http"
+)
 
 type embedResponse struct {
 	Data []struct {
 		Embedding []float32 `json:"embedding"`
 		Index     int       `json:"index"`
 	} `json:"data"`
-}
-
-type apiErrorBody struct {
-	Error struct {
-		Message string `json:"message"`
-		Type    string `json:"type"`
-		Code    string `json:"code"`
-	} `json:"error"`
 }
 
 type Vector []float32
@@ -42,37 +26,16 @@ func (o *OpenAI) EmbedBatch(ctx context.Context, texts []string) ([]Vector, erro
 		return nil, nil
 	}
 
-	body, err := json.Marshal(embedRequest{Input: texts, Model: model, Dimensions: dim})
+	body := map[string]any{
+		"input":      texts,
+		"model":      model,
+		"dimensions": dim,
+	}
+	headers := map[string]string{"Authorization": "Bearer " + o.apiKey}
+
+	data, _, err := go_pkg_http.POST[embedResponse](ctx, o.client, baseURL+"/embeddings", headers, body, "")
 	if err != nil {
-		return nil, fmt.Errorf("openai: marshal: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/embeddings", bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("openai: NewRequest: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+o.apiKey)
-
-	resp, err := o.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("openai: Do: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		raw, _ := io.ReadAll(resp.Body)
-		var apiErr apiErrorBody
-		if json.Unmarshal(raw, &apiErr) == nil && apiErr.Error.Message != "" {
-			return nil, fmt.Errorf("openai: %s [%s/%s] (status=%d)",
-				apiErr.Error.Message, apiErr.Error.Type, apiErr.Error.Code, resp.StatusCode)
-		}
-		return nil, fmt.Errorf("openai: status=%d body=%s", resp.StatusCode, string(raw))
-	}
-
-	var data embedResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, fmt.Errorf("openai: decode: %w", err)
+		return nil, fmt.Errorf("openai: %w", err)
 	}
 	if len(data.Data) != len(texts) {
 		return nil, fmt.Errorf("openai: returned %d vectors, want %d", len(data.Data), len(texts))

@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	go_pkg_parser "github.com/pardnchiu/go-pkg/filesystem/parser"
+
 	"github.com/pardnchiu/KuraDB/internal/database"
-	"github.com/pardnchiu/KuraDB/internal/filesystem/parser"
 )
 
-func Upsert(db *database.DB, ctx context.Context, source string, files []parser.FileData) error {
+func Upsert(db *database.DB, ctx context.Context, source string, files []go_pkg_parser.Chunk) error {
 	if db == nil || db.DB == nil {
 		return fmt.Errorf("db is required")
 	}

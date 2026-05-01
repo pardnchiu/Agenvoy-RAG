@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	go_utils_filesystem "github.com/pardnchiu/go-utils/filesystem"
+	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
 )
 
 const (
@@ -70,8 +70,8 @@ func Register(baseURL string, dbNames []string) error {
 	}
 	for _, t := range tools {
 		path := filepath.Join(dir, t.Name+".json")
-		if err := go_utils_filesystem.WriteJSON(path, t, true); err != nil {
-			return fmt.Errorf("go_utils_filesystem.WriteJSON %s: %w", path, err)
+		if err := go_pkg_filesystem.WriteJSON(path, t, true); err != nil {
+			return fmt.Errorf("go_pkg_filesystem.WriteJSON %s: %w", path, err)
 		}
 	}
 	return nil

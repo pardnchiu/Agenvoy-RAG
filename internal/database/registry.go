@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	go_utils_filesystem "github.com/pardnchiu/go-utils/filesystem"
+	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
 )
 
 type Entry struct {
@@ -31,7 +31,7 @@ func (r *Registry) Load() ([]Entry, error) {
 }
 
 func (r *Registry) load() ([]Entry, error) {
-	list, err := go_utils_filesystem.ReadJSON[[]Entry](r.path)
+	list, err := go_pkg_filesystem.ReadJSON[[]Entry](r.path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return []Entry{}, nil
@@ -143,5 +143,5 @@ func (r *Registry) Rename(oldName, newName string) error {
 }
 
 func (r *Registry) save(list []Entry) error {
-	return go_utils_filesystem.WriteJSON(r.path, list, true)
+	return go_pkg_filesystem.WriteJSON(r.path, list, true)
 }

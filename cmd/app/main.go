@@ -14,14 +14,13 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	goUtils_filesystem "github.com/pardnchiu/go-utils/filesystem"
-	goUtils_utils "github.com/pardnchiu/go-utils/utils"
+	go_utils_filesystem "github.com/pardnchiu/go-utils/filesystem"
 
 	"github.com/pardnchiu/KuraDB/internal/database"
 	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
 	"github.com/pardnchiu/KuraDB/internal/filesystem"
 	"github.com/pardnchiu/KuraDB/internal/openai"
-	"github.com/pardnchiu/KuraDB/internal/segmenter"
+	"github.com/pardnchiu/KuraDB/internal/utils/segmenter"
 	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
@@ -68,50 +67,9 @@ func runServer() {
 		os.Exit(1)
 	}
 
-	dbName := sanitizeDBName(goUtils_utils.GetWithDefault("DB_NAME", ""))
-	if dbName == "" {
-		slog.Error("DB_NAME is required (set in .env or environment)")
-		os.Exit(1)
-	}
-
 	homeDir, configDir := mustConfigDir()
 
-	baseDir := filepath.Join(configDir, dbName)
-	if err := goUtils_filesystem.CheckDir(baseDir, true); err != nil {
-		slog.Error("goUtils_filesystem.CheckDir",
-			slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
 	reg := database.New(filepath.Join(configDir, "db.json"))
-	if err := reg.AddIfMissing(dbName); err != nil {
-		slog.Warn("registry.AddIfMissing",
-			slog.String("error", err.Error()))
-	}
-
-	folderDir := filepath.Join(baseDir, "inbox")
-	if err := goUtils_filesystem.CheckDir(folderDir, true); err != nil {
-		slog.Error("goUtils_filesystem.CheckDir",
-			slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	linkPath := filepath.Join(homeDir, "Kura_"+dbName)
-	if err := ensureSymlink(folderDir, linkPath); err != nil {
-		slog.Error("ensureSymlink",
-			slog.String("link", linkPath),
-			slog.String("target", folderDir),
-			slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	db, err := database.Open(ctx, filepath.Join(baseDir, "data.db"))
-	if err != nil {
-		slog.Error("database.Open",
-			slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	defer db.Close()
 
 	embedder, err := openai.New()
 	if err != nil {
@@ -120,26 +78,21 @@ func runServer() {
 		os.Exit(1)
 	}
 
-	seg, err := segmenter.New()
+	globalDB, err := database.OpenGlobal(ctx, filepath.Join(configDir, "global.db"))
 	if err != nil {
-		slog.Error("segmenter.New",
+		slog.Error("database.OpenGlobal",
 			slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-
-	cache := vector.New()
-	if err := loadCache(ctx, db, cache); err != nil {
-		slog.Warn("loadCache",
-			slog.String("error", err.Error()))
-	}
+	defer globalDB.Close()
 
 	qcache := openai.NewCache()
-	loadQueryCache(ctx, db, qcache)
+	loadQueryCache(ctx, globalDB, qcache)
 	qcache.OnSet(func(q string, v []float32) {
 		go func() {
-			saveCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := databaseHandler.SaveQueryCache(db, saveCtx, q, openai.Encode(v)); err != nil {
+			saveCtx, c := context.WithTimeout(context.Background(), 5*time.Second)
+			defer c()
+			if err := databaseHandler.SaveQueryCache(globalDB, saveCtx, q, openai.Encode(v)); err != nil {
 				slog.Warn("query_cache: save",
 					slog.String("query", q),
 					slog.String("error", err.Error()))
@@ -147,23 +100,91 @@ func runServer() {
 		}()
 	})
 
-	recordPath := filepath.Join(baseDir, "record.json")
+	segmenter.New()
+	vector.New()
 
-	go runEmbedder(ctx, db, embedder, cache, embedInterval, embedBatch)
-	go runHTTP(ctx, dbName, reg, db, cache, embedder, qcache, seg)
-	go runWatcher(ctx, folderDir, recordPath, db)
+	perDBs := make(map[string]*database.DB)
+
+	entries, err := reg.Load()
+	if err != nil {
+		slog.Error("registry.Load",
+			slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	for _, entry := range entries {
+		baseDir := filepath.Join(configDir, entry.DB)
+		if err := go_utils_filesystem.CheckDir(baseDir, true); err != nil {
+			slog.Warn("db: CheckDir base",
+				slog.String("db", entry.DB),
+				slog.String("error", err.Error()))
+			continue
+		}
+
+		folderDir := filepath.Join(baseDir, "inbox")
+		if err := go_utils_filesystem.CheckDir(folderDir, true); err != nil {
+			slog.Warn("db: CheckDir inbox",
+				slog.String("db", entry.DB),
+				slog.String("error", err.Error()))
+			continue
+		}
+
+		linkPath := filepath.Join(homeDir, "Kura_"+entry.DB)
+		if err := ensureSymlink(folderDir, linkPath); err != nil {
+			slog.Warn("db: ensureSymlink",
+				slog.String("db", entry.DB),
+				slog.String("link", linkPath),
+				slog.String("error", err.Error()))
+			continue
+		}
+
+		db, err := database.OpenPerDB(ctx, filepath.Join(baseDir, "data.db"))
+		if err != nil {
+			slog.Warn("db: Open",
+				slog.String("db", entry.DB),
+				slog.String("error", err.Error()))
+			continue
+		}
+		perDBs[entry.DB] = db
+
+		if err := vector.InitBucket(entry.DB); err != nil {
+			slog.Warn("vector.EnsureBucket",
+				slog.String("db", entry.DB),
+				slog.String("error", err.Error()))
+			continue
+		}
+		if err := loadCache(ctx, entry.DB, db); err != nil {
+			slog.Warn("loadCache",
+				slog.String("db", entry.DB),
+				slog.String("error", err.Error()))
+		}
+
+		recordPath := filepath.Join(baseDir, "record.json")
+
+		go runEmbedder(ctx, entry.DB, db, embedder, embedInterval, embedBatch)
+		go runWatcher(ctx, folderDir, recordPath, db)
+
+		slog.Info("db: ready",
+			slog.String("db", entry.DB))
+	}
+
+	go runHTTP(ctx, reg, perDBs, embedder, qcache)
 
 	<-ctx.Done()
 	slog.Info("shutdown",
 		slog.String("reason", ctx.Err().Error()))
+
+	for _, db := range perDBs {
+		db.Close()
+	}
 }
 
 func runWatcher(ctx context.Context, folderDir, recordPath string, db *database.DB) {
 	var prev *map[string]filesystem.File
-	if snap, err := goUtils_filesystem.ReadJSON[map[string]filesystem.File](recordPath); err == nil {
+	if snap, err := go_utils_filesystem.ReadJSON[map[string]filesystem.File](recordPath); err == nil {
 		prev = &snap
 	} else if !errors.Is(err, os.ErrNotExist) {
-		slog.Warn("goUtils_filesystem.ReadJSON",
+		slog.Warn("go_utils_filesystem.ReadJSON",
 			slog.String("error", err.Error()))
 	}
 
@@ -188,8 +209,8 @@ func runWatcher(ctx context.Context, folderDir, recordPath string, db *database.
 			go func() {
 				saveMu.Lock()
 				defer saveMu.Unlock()
-				if err := goUtils_filesystem.WriteJSON(recordPath, *snap, false); err != nil {
-					slog.Warn("goUtils_filesystem.WriteJSON",
+				if err := go_utils_filesystem.WriteJSON(recordPath, *snap, false); err != nil {
+					slog.Warn("go_utils_filesystem.WriteJSON",
 						slog.String("error", err.Error()))
 				}
 			}()
@@ -212,7 +233,7 @@ func mustConfigDir() (homeDir, configDir string) {
 		os.Exit(1)
 	}
 	configDir = filepath.Join(homeDir, ".config", "KuraDB")
-	if err := goUtils_filesystem.CheckDir(configDir, true); err != nil {
+	if err := go_utils_filesystem.CheckDir(configDir, true); err != nil {
 		fmt.Fprintf(os.Stderr, "CheckDir %s: %v\n", configDir, err)
 		os.Exit(1)
 	}

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
-	goUtils_filesystem "github.com/pardnchiu/go-utils/filesystem"
+	go_utils_filesystem "github.com/pardnchiu/go-utils/filesystem"
 )
 
 const (
@@ -14,8 +15,9 @@ const (
 	defaultLimit   = 10
 	maxLimit       = 100
 
-	keywordToolName  = "rag_search_keyword"
-	semanticToolName = "rag_search_semantic"
+	toolKeyword  = "rag_search_keyword"
+	toolSemantic = "rag_search_semantic"
+	toolListDB   = "rag_list_db"
 )
 
 type endpoint struct {
@@ -44,10 +46,7 @@ type tool struct {
 	Response    response             `json:"response"`
 }
 
-func Register(dbName, baseURL string) error {
-	if dbName == "" {
-		return errors.New("dbName is required")
-	}
+func Register(baseURL string, dbNames []string) error {
 	if baseURL == "" {
 		return errors.New("baseURL is required")
 	}
@@ -60,14 +59,19 @@ func Register(dbName, baseURL string) error {
 		return fmt.Errorf("os.MkdirAll %s: %w", dir, err)
 	}
 
+	if err := cleanupManifests(dir); err != nil {
+		return fmt.Errorf("cleanupManifests: %w", err)
+	}
+
 	tools := []tool{
-		keywordTool(dbName, baseURL),
-		semanticTool(dbName, baseURL),
+		keywordTool(baseURL, dbNames),
+		semanticTool(baseURL, dbNames),
+		listTool(baseURL),
 	}
 	for _, t := range tools {
 		path := filepath.Join(dir, t.Name+".json")
-		if err := goUtils_filesystem.WriteJSON(path, t, true); err != nil {
-			return fmt.Errorf("goUtils_filesystem.WriteJSON %s: %w", path, err)
+		if err := go_utils_filesystem.WriteJSON(path, t, true); err != nil {
+			return fmt.Errorf("go_utils_filesystem.WriteJSON %s: %w", path, err)
 		}
 	}
 	return nil
@@ -78,9 +82,12 @@ func Unregister() error {
 	if err != nil {
 		return err
 	}
+	return cleanupManifests(dir)
+}
 
+func cleanupManifests(dir string) error {
 	var firstErr error
-	for _, name := range []string{keywordToolName, semanticToolName} {
+	for _, name := range []string{toolKeyword, toolSemantic, toolListDB} {
 		path := filepath.Join(dir, name+".json")
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			if firstErr == nil {
@@ -102,15 +109,6 @@ func toolsDir() (string, error) {
 	return filepath.Join(home, ".config", "Agenvoy", "api_tools"), nil
 }
 
-func dbParam(dbName string) parameter {
-	return parameter{
-		Type:        "string",
-		Description: fmt.Sprintf("Target RAG db name. Must match the running instance (%q); mismatched values return HTTP 400.", dbName),
-		Required:    true,
-		Default:     dbName,
-	}
-}
-
 func limitParam() parameter {
 	return parameter{
 		Type:        "integer",
@@ -120,10 +118,25 @@ func limitParam() parameter {
 	}
 }
 
-func keywordTool(dbName, baseURL string) tool {
+func dbParam(dbNames []string) parameter {
+	desc := "Target RAG database name."
+	if len(dbNames) > 0 {
+		desc += " Currently loaded: " + strings.Join(dbNames, ", ") + "."
+	} else {
+		desc += " No databases are currently loaded."
+	}
+	desc += " Call rag_list_db to discover available databases at runtime."
+	return parameter{
+		Type:        "string",
+		Description: desc,
+		Required:    true,
+	}
+}
+
+func keywordTool(baseURL string, dbNames []string) tool {
 	return tool{
-		Name:        keywordToolName,
-		Description: fmt.Sprintf("Keyword search over the RAG index served by this process (db=%q). Tokenizes the query (Chinese-aware via gse), runs case-insensitive SQL LIKE matching, and returns matching chunks grouped by source file ranked by hit count.", dbName),
+		Name:        toolKeyword,
+		Description: "Keyword search over a KuraDB RAG index. Tokenizes the query (Chinese-aware via gse), runs case-insensitive SQL LIKE matching, and returns matching chunks grouped by source file ranked by hit count. Specify which database to search via the db parameter.",
 		Endpoint: endpoint{
 			URL:         baseURL + "/api/keyword",
 			Method:      "GET",
@@ -131,7 +144,7 @@ func keywordTool(dbName, baseURL string) tool {
 			Timeout:     timeoutSeconds,
 		},
 		Parameters: map[string]parameter{
-			"db": dbParam(dbName),
+			"db": dbParam(dbNames),
 			"q": {
 				Type:        "string",
 				Description: "Search query. Natural-language input is tokenized into keywords; stopwords are removed.",
@@ -143,10 +156,10 @@ func keywordTool(dbName, baseURL string) tool {
 	}
 }
 
-func semanticTool(dbName, baseURL string) tool {
+func semanticTool(baseURL string, dbNames []string) tool {
 	return tool{
-		Name:        semanticToolName,
-		Description: fmt.Sprintf("Semantic search over the RAG index served by this process (db=%q). Embeds the query with OpenAI text-embedding-3-small (1536-dim) and returns the top cosine-similarity chunks (min score 0.3) grouped by source file.", dbName),
+		Name:        toolSemantic,
+		Description: "Semantic search over a KuraDB RAG index. Embeds the query with OpenAI text-embedding-3-small (Matryoshka 512-dim) and returns the top cosine-similarity chunks (min score 0.3) grouped by source file. Two-stage retrieval: source-level coarse filter then chunk-level rerank. Specify which database to search via the db parameter.",
 		Endpoint: endpoint{
 			URL:         baseURL + "/api/semantic",
 			Method:      "GET",
@@ -154,7 +167,7 @@ func semanticTool(dbName, baseURL string) tool {
 			Timeout:     timeoutSeconds,
 		},
 		Parameters: map[string]parameter{
-			"db": dbParam(dbName),
+			"db": dbParam(dbNames),
 			"q": {
 				Type:        "string",
 				Description: "Natural-language query; semantic similarity is computed against indexed chunk embeddings.",
@@ -163,5 +176,20 @@ func semanticTool(dbName, baseURL string) tool {
 			"limit": limitParam(),
 		},
 		Response: response{Format: "json"},
+	}
+}
+
+func listTool(baseURL string) tool {
+	return tool{
+		Name:        toolListDB,
+		Description: "List all KuraDB RAG databases. Returns both the databases currently loaded by the running server (queryable via rag_search_keyword / rag_search_semantic) and all databases registered in the registry.",
+		Endpoint: endpoint{
+			URL:         baseURL + "/api/list",
+			Method:      "GET",
+			ContentType: "json",
+			Timeout:     timeoutSeconds,
+		},
+		Parameters: map[string]parameter{},
+		Response:   response{Format: "json"},
 	}
 }

@@ -19,7 +19,15 @@ type DB struct {
 	DB *sql.DB
 }
 
-func Open(ctx context.Context, path string) (*DB, error) {
+func OpenPerDB(ctx context.Context, path string) (*DB, error) {
+	return openWithSchemas(ctx, path, []string{sqlSchemaFileData})
+}
+
+func OpenGlobal(ctx context.Context, path string) (*DB, error) {
+	return openWithSchemas(ctx, path, []string{sqlSchemaQueryCache})
+}
+
+func openWithSchemas(ctx context.Context, path string, schemas []string) (*DB, error) {
 	if path == "" {
 		return nil, fmt.Errorf("database: path is required")
 	}
@@ -42,9 +50,11 @@ func Open(ctx context.Context, path string) (*DB, error) {
 	}
 
 	db := &DB{DB: raw}
-	if err := db.migrate(ctx); err != nil {
-		db.Close()
-		return nil, err
+	for i, s := range schemas {
+		if _, err := db.DB.ExecContext(ctx, s); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("database: migrate[%d]: %w", i, err)
+		}
 	}
 	return db, nil
 }
@@ -54,14 +64,4 @@ func (db *DB) Close() {
 		return
 	}
 	db.DB.Close()
-}
-
-func (db *DB) migrate(ctx context.Context) error {
-	if _, err := db.DB.ExecContext(ctx, sqlSchemaFileData); err != nil {
-		return fmt.Errorf("database: migrate file_data: %w", err)
-	}
-	if _, err := db.DB.ExecContext(ctx, sqlSchemaQueryCache); err != nil {
-		return fmt.Errorf("database: migrate query_cache: %w", err)
-	}
-	return nil
 }

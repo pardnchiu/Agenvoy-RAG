@@ -6,40 +6,43 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	apiHandler "github.com/pardnchiu/KuraDB/internal/api/handler"
 	"github.com/pardnchiu/KuraDB/internal/database"
 	"github.com/pardnchiu/KuraDB/internal/openai"
-	"github.com/pardnchiu/KuraDB/internal/segmenter"
-	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
-func Router(dbName string, reg *database.Registry, db *database.DB, cache *vector.Cache, embedder openai.Embedder, qCache *openai.Cache, seg *segmenter.Segmenter) *gin.Engine {
+func Router(reg *database.Registry, dbs map[string]*database.DB, embedder openai.Embedder, qCache *openai.Cache) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
-	r := gin.New()
-	r.Use(gin.Recovery())
+	router := gin.New()
+	router.Use(gin.Recovery())
 
-	api := r.Group("/api")
-	api.GET("/health", Health(cache))
-	api.GET("/list", List(dbName, reg))
-	api.GET("/semantic", requireDB(dbName), Semantic(db, cache, embedder, qCache))
-	api.GET("/keyword", requireDB(dbName), Keyword(db, seg))
+	api := router.Group("/api")
+	api.GET("/health", apiHandler.Health())
+	api.GET("/list", apiHandler.List(reg, dbs))
+	api.GET("/semantic", queryDB(dbs), apiHandler.Semantic(dbs, embedder, qCache))
+	api.GET("/keyword", queryDB(dbs), apiHandler.Keyword(dbs))
 
-	return r
+	return router
 }
 
-func requireDB(running string) gin.HandlerFunc {
+func queryDB(dbs map[string]*database.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		got := c.Query("db")
-		if got == "" {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "db is required"})
-			return
-		}
-		if got != running {
+		db := c.Query("db")
+		if db == "" {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("db mismatch: server runs %q, request asked %q", running, got),
+				"error": "db is required",
 			})
 			return
 		}
+		if _, ok := dbs[db]; !ok {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("%q not exist", db),
+			})
+			return
+		}
+
+		c.Set("db", db)
 		c.Next()
 	}
 }

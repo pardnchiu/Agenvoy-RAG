@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/pardnchiu/KuraDB/internal/database"
-	goUtils_filesystem "github.com/pardnchiu/go-utils/filesystem"
+	go_utils_filesystem "github.com/pardnchiu/go-utils/filesystem"
 )
 
 func printUsage(w io.Writer) {
 	fmt.Fprintln(w, `usage:
-  kura                            start server (DB_NAME from env / .env)
+  kura                            start server (loads all registered dbs)
   kura add <name>                 register a new db
   kura list                       list registered dbs
   kura remove <name>              unregister and delete a db (requires confirmation)
@@ -57,7 +57,7 @@ func cmdAdd(args []string) {
 	}
 
 	folderDir := filepath.Join(dbDir, "inbox")
-	if err := goUtils_filesystem.CheckDir(folderDir, true); err != nil {
+	if err := go_utils_filesystem.CheckDir(folderDir, true); err != nil {
 		fmt.Fprintf(os.Stderr, "add: CheckDir: %v\n", err)
 		os.Exit(1)
 	}

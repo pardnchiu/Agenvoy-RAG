@@ -7,7 +7,7 @@ import (
 	"github.com/pardnchiu/KuraDB/internal/database"
 )
 
-func LoadEmbeding(db *database.DB, ctx context.Context, fn func(id int64, blob []byte) error) error {
+func LoadEmbedding(db *database.DB, ctx context.Context, fn func(id int64, source string, blob []byte) error) error {
 	if db == nil || db.DB == nil {
 		return fmt.Errorf("db is required")
 	}
@@ -19,7 +19,7 @@ func LoadEmbeding(db *database.DB, ctx context.Context, fn func(id int64, blob [
 	}
 
 	rows, err := db.DB.QueryContext(ctx, `
-SELECT id, embedding
+SELECT id, source, embedding
 FROM file_data
 WHERE is_embed = TRUE
 AND dismiss = FALSE
@@ -35,11 +35,12 @@ AND embedding IS NOT NULL;
 			return err
 		}
 		var id int64
+		var source string
 		var blob []byte
-		if err := rows.Scan(&id, &blob); err != nil {
+		if err := rows.Scan(&id, &source, &blob); err != nil {
 			return fmt.Errorf("rows.Scan: %w", err)
 		}
-		if err := fn(id, blob); err != nil {
+		if err := fn(id, source, blob); err != nil {
 			return err
 		}
 	}

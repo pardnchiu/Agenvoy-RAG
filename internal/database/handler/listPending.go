@@ -8,12 +8,13 @@ import (
 	"github.com/pardnchiu/KuraDB/internal/database"
 )
 
-type PendingItem struct {
+type Pending struct {
 	ID      int64
+	Source  string
 	Content string
 }
 
-func ListPending(db *database.DB, ctx context.Context, limit int) ([]PendingItem, error) {
+func ListPending(db *database.DB, ctx context.Context, limit int) ([]Pending, error) {
 	if db == nil || db.DB == nil {
 		return nil, fmt.Errorf("db is required")
 	}
@@ -26,7 +27,7 @@ func ListPending(db *database.DB, ctx context.Context, limit int) ([]PendingItem
 	}
 
 	rows, err := db.DB.QueryContext(ctx, `
-SELECT id, content
+SELECT id, source, content
 FROM file_data
 WHERE is_embed = FALSE
 AND dismiss = FALSE
@@ -38,10 +39,10 @@ LIMIT ?;
 	}
 	defer rows.Close()
 
-	results := make([]PendingItem, 0)
+	results := make([]Pending, 0)
 	for rows.Next() {
-		var p PendingItem
-		if err := rows.Scan(&p.ID, &p.Content); err != nil {
+		var p Pending
+		if err := rows.Scan(&p.ID, &p.Source, &p.Content); err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
 		results = append(results, p)

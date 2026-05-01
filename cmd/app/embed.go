@@ -41,30 +41,40 @@ func loadQueryCache(ctx context.Context, db *database.DB, qcache *openai.Cache) 
 		slog.Int("skipped", skipped))
 }
 
-func loadCache(ctx context.Context, db *database.DB, cache *vector.Cache) error {
+func loadCache(ctx context.Context, dbName string, db *database.DB) error {
 	count := 0
-	err := databaseHandler.LoadEmbeding(db, ctx, func(id int64, blob []byte) error {
+	err := databaseHandler.LoadEmbedding(db, ctx, func(id int64, source string, blob []byte) error {
 		v, derr := openai.Decode(blob)
 		if derr != nil {
 			slog.Warn("openai.Decode",
+				slog.String("db", dbName),
 				slog.String("error", derr.Error()))
 			return nil
 		}
-		cache.Set(id, v)
+		if err := vector.Set(dbName, id, source, v); err != nil {
+			slog.Warn("vector.Set",
+				slog.String("db", dbName),
+				slog.String("error", err.Error()))
+			return nil
+		}
 		count++
 		return nil
 	})
 	if err != nil {
 		return err
 	}
+	if err := vector.RebuildAll(dbName); err != nil {
+		slog.Warn("vector.RebuildAll",
+			slog.String("error", err.Error()))
+	}
 	return nil
 }
 
 func runEmbedder(
 	ctx context.Context,
+	dbName string,
 	db *database.DB,
 	embedder openai.Embedder,
-	cache *vector.Cache,
 	interval time.Duration,
 	batch int,
 ) {
@@ -76,15 +86,16 @@ func runEmbedder(
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			embedTick(ctx, db, embedder, cache, batch)
+			embedTick(ctx, dbName, db, embedder, batch)
 		}
 	}
 }
 
-func embedTick(ctx context.Context, db *database.DB, embedder openai.Embedder, cache *vector.Cache, batch int) {
+func embedTick(ctx context.Context, dbName string, db *database.DB, embedder openai.Embedder, batch int) {
 	pending, err := databaseHandler.ListPending(db, ctx, batch)
 	if err != nil {
 		slog.Warn("embed: ListPending",
+			slog.String("db", dbName),
 			slog.String("error", err.Error()))
 		return
 	}
@@ -100,12 +111,14 @@ func embedTick(ctx context.Context, db *database.DB, embedder openai.Embedder, c
 	vectors, err := embedder.EmbedBatch(ctx, texts)
 	if err != nil {
 		slog.Warn("embed: EmbedBatch",
+			slog.String("db", dbName),
 			slog.Int("batch", len(pending)),
 			slog.String("error", err.Error()))
 		return
 	}
 	if len(vectors) != len(pending) {
 		slog.Warn("embed: vector count mismatch",
+			slog.String("db", dbName),
 			slog.Int("want", len(pending)),
 			slog.Int("got", len(vectors)))
 		return
@@ -123,23 +136,43 @@ func embedTick(ctx context.Context, db *database.DB, embedder openai.Embedder, c
 	applied, err := databaseHandler.UpdateEmbedding(db, ctx, updates)
 	if err != nil {
 		slog.Warn("embed: SetEmbeddings",
+			slog.String("db", dbName),
 			slog.String("error", err.Error()))
 		return
 	}
 
-	if cache != nil && len(applied) > 0 {
+	if vector.Check() && len(applied) > 0 {
 		appliedSet := make(map[int64]struct{}, len(applied))
 		for _, id := range applied {
 			appliedSet[id] = struct{}{}
 		}
+		affectedSources := make(map[string]struct{})
 		for i, p := range pending {
-			if _, ok := appliedSet[p.ID]; ok {
-				cache.Set(p.ID, vectors[i])
+			if _, ok := appliedSet[p.ID]; !ok {
+				continue
+			}
+			if err := vector.Set(dbName, p.ID, p.Source, vectors[i]); err != nil {
+				slog.Warn("vector.Set",
+					slog.String("db", dbName),
+					slog.String("error", err.Error()))
+				continue
+			}
+			if p.Source != "" {
+				affectedSources[p.Source] = struct{}{}
+			}
+		}
+		for src := range affectedSources {
+			if err := vector.Rebuild(dbName, src); err != nil {
+				slog.Warn("vector.RebuildSource",
+					slog.String("db", dbName),
+					slog.String("source", src),
+					slog.String("error", err.Error()))
 			}
 		}
 	}
 
 	slog.Info("embedded",
+		slog.String("db", dbName),
 		slog.Int("batch", len(pending)),
 		slog.Int("applied", len(applied)))
 }

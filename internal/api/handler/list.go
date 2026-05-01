@@ -1,4 +1,4 @@
-package api
+package apiHandler
 
 import (
 	"net/http"
@@ -8,7 +8,11 @@ import (
 	"github.com/pardnchiu/KuraDB/internal/database"
 )
 
-func List(running string, reg *database.Registry) gin.HandlerFunc {
+func List(reg *database.Registry, dbs map[string]*database.DB) gin.HandlerFunc {
+	loaded := make([]string, 0, len(dbs))
+	for name := range dbs {
+		loaded = append(loaded, name)
+	}
 	return func(c *gin.Context) {
 		entries, err := reg.Load()
 		if err != nil {
@@ -19,7 +23,7 @@ func List(running string, reg *database.Registry) gin.HandlerFunc {
 			entries = []database.Entry{}
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"running":    running,
+			"loaded":     loaded,
 			"registered": entries,
 		})
 	}

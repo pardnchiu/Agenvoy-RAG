@@ -14,8 +14,6 @@ import (
 	"github.com/pardnchiu/KuraDB/internal/api"
 	"github.com/pardnchiu/KuraDB/internal/database"
 	"github.com/pardnchiu/KuraDB/internal/openai"
-	"github.com/pardnchiu/KuraDB/internal/segmenter"
-	"github.com/pardnchiu/KuraDB/internal/vector"
 )
 
 const (
@@ -27,7 +25,7 @@ const (
 	httpShutdownTimeout   = 5 * time.Second
 )
 
-func runHTTP(ctx context.Context, dbName string, reg *database.Registry, db *database.DB, cache *vector.Cache, embedder openai.Embedder, qcache *openai.Cache, seg *segmenter.Segmenter) {
+func runHTTP(ctx context.Context, reg *database.Registry, perDBs map[string]*database.DB, embedder openai.Embedder, qcache *openai.Cache) {
 	ln, port, err := pickListener()
 	if err != nil {
 		slog.Error("http: pickListener",
@@ -37,13 +35,17 @@ func runHTTP(ctx context.Context, dbName string, reg *database.Registry, db *dat
 
 	url := fmt.Sprintf("http://%s:%d", "127.0.0.1", port)
 
-	if err := agenvoy.Register(dbName, url); err != nil {
+	dbNames := make([]string, 0, len(perDBs))
+	for name := range perDBs {
+		dbNames = append(dbNames, name)
+	}
+	if err := agenvoy.Register(url, dbNames); err != nil {
 		slog.Warn("agenvoy.Register",
 			slog.String("error", err.Error()))
 	}
 
 	srv := &http.Server{
-		Handler:           api.Router(dbName, reg, db, cache, embedder, qcache, seg),
+		Handler:           api.Router(reg, perDBs, embedder, qcache),
 		ReadHeaderTimeout: httpReadHeaderTimeout,
 	}
 

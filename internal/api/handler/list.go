@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/agenvoy/kuradb/internal/database"
 )
 
 func List(reg *database.Registry, dbs map[string]*database.DB) gin.HandlerFunc {

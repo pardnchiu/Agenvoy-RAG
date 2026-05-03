@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/agenvoy/kuradb/internal/database"
 )
 
 type EmbeddingItem struct {

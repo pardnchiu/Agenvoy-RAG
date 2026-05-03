@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/pardnchiu/KuraDB/internal/database"
-	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
-	"github.com/pardnchiu/KuraDB/internal/openai"
-	"github.com/pardnchiu/KuraDB/internal/vector"
+	"github.com/agenvoy/kuradb/internal/database"
+	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
+	"github.com/agenvoy/kuradb/internal/openai"
+	"github.com/agenvoy/kuradb/internal/vector"
 )
 
 func loadQueryCache(ctx context.Context, db *database.DB, qcache *openai.Cache) {

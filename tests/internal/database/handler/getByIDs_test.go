@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	databaseHandler "github.com/pardnchiu/KuraDB/internal/database/handler"
+	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
 )
 
 func TestGetByIDs_Nominal(t *testing.T) {

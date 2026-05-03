@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/agenvoy/kuradb/internal/database"
 )
 
 func LoadEmbedding(db *database.DB, ctx context.Context, fn func(id int64, source string, blob []byte) error) error {

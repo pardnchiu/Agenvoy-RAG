@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pardnchiu/KuraDB/internal/database"
+	"github.com/agenvoy/kuradb/internal/database"
 	go_pkg_filesystem "github.com/pardnchiu/go-pkg/filesystem"
 )
 

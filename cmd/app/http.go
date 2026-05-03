@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pardnchiu/KuraDB/internal/agenvoy"
-	"github.com/pardnchiu/KuraDB/internal/api"
-	"github.com/pardnchiu/KuraDB/internal/database"
-	"github.com/pardnchiu/KuraDB/internal/openai"
+	"github.com/agenvoy/kuradb/internal/agenvoy"
+	"github.com/agenvoy/kuradb/internal/api"
+	"github.com/agenvoy/kuradb/internal/database"
+	"github.com/agenvoy/kuradb/internal/openai"
 )
 
 const (

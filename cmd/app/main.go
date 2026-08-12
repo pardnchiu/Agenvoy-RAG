@@ -21,7 +21,7 @@ import (
 	"github.com/agenvoy/kuradb/internal/filesystem"
 	"github.com/agenvoy/kuradb/internal/openai"
 	"github.com/agenvoy/kuradb/internal/runtime"
-	"github.com/agenvoy/kuradb/internal/utils/segmenter"
+	"github.com/agenvoy/kuradb/internal/segmenter"
 	"github.com/agenvoy/kuradb/internal/vector"
 )
 
@@ -54,6 +54,9 @@ func main() {
 			return
 		case "port":
 			cmdPort(os.Args[2:])
+			return
+		case "mcp":
+			cmdMCP()
 			return
 		case "help", "-h", "--help":
 			printUsage(os.Stdout)

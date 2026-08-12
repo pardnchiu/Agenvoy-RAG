@@ -1,4 +1,4 @@
-package apiHandler
+package search
 
 import (
 	"context"

@@ -1,16 +1,12 @@
-package apiHandler
+package search
 
 import (
-	"strconv"
-
-	"github.com/gin-gonic/gin"
-
 	databaseHandler "github.com/agenvoy/kuradb/internal/database/handler"
 )
 
 const (
-	defaultLimit = 10
-	maxLimit     = 100
+	DefaultLimit = 10
+	MaxLimit     = 100
 )
 
 type Match struct {
@@ -42,16 +38,4 @@ func group(flat []databaseHandler.FileRow) []Group {
 		})
 	}
 	return groups
-}
-
-func queryLimit(c *gin.Context) int {
-	raw := c.Query("limit")
-	if raw == "" {
-		return defaultLimit
-	}
-	v, err := strconv.Atoi(raw)
-	if err != nil || v <= 0 || v > maxLimit {
-		return defaultLimit
-	}
-	return v
 }

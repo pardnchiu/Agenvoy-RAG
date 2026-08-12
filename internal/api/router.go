@@ -8,6 +8,7 @@ import (
 
 	apiHandler "github.com/agenvoy/kuradb/internal/api/handler"
 	"github.com/agenvoy/kuradb/internal/database"
+	"github.com/agenvoy/kuradb/internal/mcp"
 	"github.com/agenvoy/kuradb/internal/openai"
 )
 
@@ -16,6 +17,8 @@ func Router(reg *database.Registry, dbs map[string]*database.DB, embedder openai
 
 	router := gin.New()
 	router.Use(gin.Recovery())
+
+	router.Any("/mcp", gin.WrapH(mcp.Handler(reg, dbs, embedder, qCache)))
 
 	api := router.Group("/api")
 	api.GET("/health", apiHandler.Health())

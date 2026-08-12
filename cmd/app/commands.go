@@ -44,6 +44,7 @@ func printUsage(w io.Writer) {
   kura stop                       stop the running server
   kura port set <port>            pin the server to a fixed port (restarts server)
   kura port clear                 unpin the port (takes effect on next manual restart)
+  kura mcp                        serve MCP over stdio, bridged to the running server
   kura help                       show this message`)
 }
 
